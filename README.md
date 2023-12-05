@@ -1,10 +1,9 @@
-# ProyectoPL
+# Proyecto Programacion de investigacion de operaciones
 
 Integrantes
-
-Didier Delgado
+Didier Delgado - 20162578135
 Daniel Lemos - 20171578028
-Jeym cañon
+Jeym cañon - 20171578083
 
 --- ¿COMO DESCARGARLO?
 
@@ -27,7 +26,7 @@ grafico y dos fases
 
 no hay boton de devolverse, por lo cual toca terminar la ejecucion de cada programa por aparte
 
-
+![imagen_2023-12-04_224201222](https://github.com/Daniell395/ProyectoPL/assets/69869828/29955228-c66a-47cc-9612-4bc23cce4992)
 
 *Metodo grafico 
 
@@ -37,7 +36,7 @@ si o si antes de empezar a añadir inecuaciones, hay que agregar la Funcion obje
 
 darle "GUARDAR"
 
-añadir los coeficientes de las variables y seleccionar el tipo de inecuacion![imagen_2023-12-04_224201222](https://github.com/Daniell395/ProyectoPL/assets/69869828/29955228-c66a-47cc-9612-4bc23cce4992)
+añadir los coeficientes de las variables y seleccionar el tipo de inecuacion
 
 
 se puede usar el boton de guardar varias veces y actualiza la grafica que se genera
@@ -56,3 +55,5 @@ si no tiene solucion manda el aviso de que no se pudo acotar la solucion
 se añade las variables y se selecciona el tipo de restriccion
 
 se genera el codigo por consola y por interfaz
+
+# proyecto hecho por estudiantes de la universidad distrital francisco jose de caldas
