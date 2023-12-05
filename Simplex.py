@@ -1,7 +1,7 @@
-from Vista import Imprime, Print, Multiples_Solucion, Solucion
+from Vista import ImprimeMatriz, Print, MultiplesSoluciones, Solucion
 from fractions import Fraction
 
-class MetodoSimplex:
+class SolucionadorSimplex:
     def __init__(self, matriz_simplex, filas_simplex, columnas_simplex, minimizacion, archivo_salida):
         self.matriz_simplex = matriz_simplex
         self.filas_simplex = filas_simplex
@@ -82,7 +82,7 @@ class MetodoSimplex:
         return True
 
     def solucion_adicional(self, col):
-        impresion = Imprime(self.archivo_salida)
+        impresion = ImprimeMatriz(self.archivo_salida)
         columna_pivote = col
         self.realizar_division(columna_pivote)
         fila_pivote = self.encontrar_fila_pivote()
@@ -101,10 +101,10 @@ class MetodoSimplex:
         impresion.imprime_matriz()
 
     def start_metodo_simplex_max(self):
-        impresion = Imprime(self.archivo_salida)
+        impresion = ImprimeMatriz(self.archivo_salida)
         estados = 0
         print_aux = Print()
-        multiples_sol = Multiples_Solucion()
+        multiples_sol = MultiplesSoluciones()
         s = Solucion()
         degenerada = 0
         s_extra = Solucion()
@@ -194,7 +194,6 @@ class MetodoSimplex:
             x = numerador * denominador
             self.matriz_simplex[fila_pivote][y] = x
             y += 1
-
 
 class ImprimeMatriz:
     def __init__(self, archivo_salida):
