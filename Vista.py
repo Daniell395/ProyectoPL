@@ -1,151 +1,89 @@
 from fractions import Fraction
-#Impresion de la parte grafica
 
-
-class Print:
-    #Constructor
+class Printer:
     def __init__(self):
         pass
-        
-    '''
-    Funcion en la cual se imprimen el nombre
-    correspondiente a cada una de las filas ya sea
-    var de holgura artificial o basica
-    '''
-    def imprime_Columnas(self,arregloCol,archivo):
-        
-        aux="\t"
-        aux2="\t"
-        for i in arregloCol:
-            aux+=i+"\t"
-            #aux2+=""
-        #aux2+=""
-        print (aux+"\n"+aux2)
-        archivo.write(aux+"\n"+aux2+"\n")
 
-    '''
-    Imprime la fila de U 
-    '''
-    def imprimeFilaU(self,tabla,arregloFilas,archivo):
+    def print_columns(self, column_array, file):
+        header = "\t" + "\t".join(column_array) + "\t"
+        file.write(header + "\n")
+        print(header)
 
-        aux=arregloFilas[0]+"\t"
-        for x in range (len(tabla[0])):
-            result = round(tabla[0][x].NUM,2)
-            convert=Fraction(result).limit_denominator()
-            aux+=str(convert)+"\t" 
-        print (aux)
-        archivo.write(aux+"\n")
-    
-    '''
-    Funcion encargada de imprimir la primer matriz
-    una vez se encuentre estandarizada
-    '''
-    def imprime_Matriz(self,tabla,arregloFilas,arregloCol,archivo):
+    def print_u_row(self, table, row_labels, file):
+        row_u = row_labels[0] + "\t"
+        for x in range(len(table[0])):
+            result = round(table[0][x].NUM, 2)
+            convert = Fraction(result).limit_denominator()
+            row_u += str(convert) + "\t"
+        file.write(row_u + "\n")
+        print(row_u)
 
-       if(len(tabla) is not 0):
-          aux=""
-          self.imprime_Columnas(arregloCol,archivo)
-          self.imprimeFilaU(tabla,arregloFilas,archivo)
-          for i in range (1,len(tabla)):
-              aux=arregloFilas[i]+"\t"
-              for j in range (len(tabla[i])):
-                  result = round(tabla[i][j],2)
-                  convert=Fraction(result).limit_denominator() # se utiliza para que se imprima de forma fraccionaria 
-                  aux+=str(convert)+"\t"
-              archivo.write(aux+"\n")
-              print(aux)
+    def print_matrix(self, table, row_labels, column_labels, file):
+        if len(table) != 0:
+            self.print_columns(column_labels, file)
+            self.print_u_row(table, row_labels, file)
+            for i in range(1, len(table)):
+                row = row_labels[i] + "\t"
+                for j in range(len(table[i])):
+                    result = round(table[i][j], 2)
+                    convert = Fraction(result).limit_denominator()
+                    row += str(convert) + "\t"
+                file.write(row + "\n")
+                print(row)
 
-
-class Solucion:
-    '''Impresion del resultado final'''
-    
+class Solution:
     def __init__(self):
-        
-        self.lista=[]
-        self.lista2=[]
-        
-    '''
-    Funcion utilizada para verificar cuales variables
-    son las basicas para luego mostrar la solucion
-    de la forma U (x1 =0,...)
-    '''
-    def mostrarSolucion(self,tabla,arregloFilas,arregloCol,archivo, esMin):
-        self.lista.append("U")
-        self.lista2.append(str(round(tabla[0][len(tabla[0])-2].NUM,2)))
-        for i in range(1, len(arregloFilas)):
-            
-            
-            self.lista2.append(tabla[i][len(tabla[i])-2])
-            self.lista.append(arregloFilas[i])
+        self.variable_list = []
+        self.value_list = []
 
-        self.colocar_Variables(arregloCol)
-        self.imprimirVar(archivo)
-        
-    def colocar_Variables(self,arregloCol): # coloca las variables que no son las basicas en la lista para luego imprimirlas
-        for i in range(0,len(arregloCol)-2):
-            
-            if arregloCol[i] in self.lista:
+    def show_solution(self, table, row_labels, column_labels, file, is_minimization):
+        self.variable_list.append("U")
+        self.value_list.append(str(round(table[0][len(table[0]) - 2].NUM, 2)))
+        for i in range(1, len(row_labels)):
+            self.value_list.append(table[i][len(table[i]) - 2])
+            self.variable_list.append(row_labels[i])
+
+        self.place_variables(column_labels)
+        self.print_variables(file)
+
+    def place_variables(self, column_labels):
+        for i in range(0, len(column_labels) - 2):
+            if column_labels[i] in self.variable_list:
                 continue
             else:
-                self.lista.append(arregloCol[i])
-                self.lista2.append(0)
+                self.variable_list.append(column_labels[i])
+                self.value_list.append(0)
 
-    '''
-    Funcion encargada de mostrar la respuesta final de
-    la forma U = 332(x1:0,..)
+    def print_variables(self, file):
+        result_str = "OPTIMAL VALUE: [Z] = " + str(self.value_list[0]) + "\t Resulting variable values: (" + \
+                     str(self.variable_list[1]) + ": " + str(round(self.value_list[1], 2))
+        for i in range(2, len(self.variable_list)):
+            result_str += "," + str(self.variable_list[i]) + ": " + str(round(self.value_list[i], 2))
+        print(result_str + " )")
+        file.write(result_str + " )\n")
 
-    '''            
-    def imprimirVar(self,archivo):
-
-        aux="VALOR ÓPTIMO: [Z] = "+ str(self.lista2[0])+"\t Valores de variables resultantes: ("+ str(self.lista[1]) +": "+ str(round(self.lista2[1],2))
-        for i in range(2,len(self.lista)):
-            aux+=","+str(self.lista[i]) +": "+ str(round(self.lista2[i],2))
-        print (aux+" )")
-        archivo.write(aux+" )\n") # lo escribe al archivo de texto
-
-class Multiples_Solucion:
-    '''
-    Clase en la cual se verifica si el resultado final cuenta con 
-    una solucion adicional 
-    '''
-    
+class MultipleSolutions:
     def __init__(self):
-        self.listaPosiciones=[]
-        
+        self.position_list = []
 
-    def localizar_VB(self, tabla,arregloFilas,arregloCol):
-        for i in range(1,len(arregloFilas)):
-            if arregloFilas[i] in arregloCol:
-                self.listaPosiciones.append(arregloCol.index(arregloFilas[i]))
-        
-        return self.verificar_Multiples_Soluciones(tabla)
+    def locate_basic_variables(self, table, row_labels, column_labels):
+        for i in range(1, len(row_labels)):
+            if row_labels[i] in column_labels:
+                self.position_list.append(column_labels.index(row_labels[i]))
 
-    '''
-    Funcion en la cual se verifica si en la fila U
-    existe alguna variable no basica con valor de 0 
-    ya que debido a esto se considera que tiene soluciones
-    extra
-    '''
-        
-    def verificar_Multiples_Soluciones(self,tabla):
-        for i in range(len (tabla[0])-2):
-            if not i in self.listaPosiciones:
-                if tabla[0][i].NUM == 0:
+        return self.check_multiple_solutions(table)
+
+    def check_multiple_solutions(self, table):
+        for i in range(len(table[0]) - 2):
+            if i not in self.position_list:
+                if table[0][i].NUM == 0:
                     return i
         return -1
 
-              
-class Archivo:
-    '''Encagada de crear archivo donde se 
-    almacenara las iteraciones'''
-    
-    def __init__(self,nombre):
-        self.archivo=open(nombre,"w+")
-        print(nombre)
+class OutputFile:
+    def __init__(self, name):
+        self.file = open(name, "w+")
+        print(name)
 
-    def getArchivo(self):
-        return self.archivo
-
-
-
-
+    def get_file(self):
+        return self.file

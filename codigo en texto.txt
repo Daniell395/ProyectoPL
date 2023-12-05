@@ -1,0 +1,879 @@
+PL 
+
+import tkinter as tk
+from tkinter import ttk
+from subprocess import Popen
+
+class UnificadorInterfaz:
+    def __init__(self, root):
+        print("\n\n\t\t\tLas iteraciones del Método de Dos Fases se mostrarán por este medio")
+        print("\t|-----------------------------------------------------------------------------------------------------|")
+        self.root = root
+        self.root.title("Inv. de Operaciones")
+
+        # Configurar el contenedor
+        container = ttk.Frame(root)
+        container.pack(expand=True, fill="both")
+
+        # Botón para ejecutar archivo1.exe (azul)
+        self.boton1 = ttk.Button(container, text="Método Gráfico", style="BotonAzul.TButton", command=self.ejecutar_archivo1)
+        self.boton1.pack(side="left", expand=True, fill="both")
+
+        # Botón para ejecutar archivo2.exe (rojo)
+        self.boton2 = ttk.Button(container, text="Método de Dos \n         Fases", style="BotonRojo.TButton", command=self.ejecutar_archivo2)
+        self.boton2.pack(side="right", expand=True, fill="both")
+
+        # Configurar estilos
+        style = ttk.Style()
+        style.configure("BotonAzul.TButton", foreground="blue", font=("TkDefaultFont", 12, "bold"))
+        style.configure("BotonRojo.TButton", foreground="red", font=("TkDefaultFont", 12, "bold"))
+
+    def ejecutar_archivo1(self):
+        # Reemplaza 'archivo1.exe' con el nombre de tu primer archivo ejecutable
+        Popen(['met_grafico.exe'])
+
+    def ejecutar_archivo2(self):
+        # Reemplaza 'archivo2.exe' con el nombre de tu segundo archivo ejecutable
+        Popen(['Met_DosFases.exe'])
+
+root = tk.Tk()
+app = UnificadorInterfaz(root)
+root.geometry("300x200")
+root.resizable(False, False)
+root.mainloop()
+
+
+----------------------------------
+
+
+main
+
+
+
+import argparse
+import sys
+import re  # 
+
+
+from Controlador import Controlador
+from Imprimir import Archivo
+
+def main(elementos_entrada):
+    coeficientes_funcion_objetivo = []
+    restricciones = []
+
+    archivo_salida = "solucion_dos_fases"
+    asignar_elementos(elementos_entrada, coeficientes_funcion_objetivo, restricciones)
+
+    numero_variables_decision = int(elementos_entrada[1].split(",")[0])
+    file = Archivo(archivo_salida)
+
+    controlador = Controlador(
+        tipo_de_optimizacion=(elementos_entrada[0] == "min"),
+        coeficientes_funcion_objetivo=coeficientes_funcion_objetivo,
+        restricciones=restricciones,
+        numero_variables_decision=numero_variables_decision,
+        archivo=file.get_archivo(),
+        es_dual=False
+    )
+    controlador.inicio_controlador()
+
+def main_dual(elementos_entrada, file):
+    coeficientes_funcion_objetivo = []
+    restricciones = []
+
+    asignar_elementos(elementos_entrada, coeficientes_funcion_objetivo, restricciones)
+
+    numero_variables_decision = int(elementos_entrada[1].split(",")[0])
+
+    controlador = Controlador(
+        tipo_de_optimizacion=(elementos_entrada[0] == "min"),
+        coeficientes_funcion_objetivo=coeficientes_funcion_objetivo,
+        restricciones=restricciones,
+        numero_variables_decision=numero_variables_decision,
+        archivo=file,
+        es_dual=True
+    )
+    controlador.inicio_controlador()
+
+def asignar_elementos(elementos_entrada, coeficientes_funcion_objetivo, restricciones):
+    validar_tipo_optimizacion(elementos_entrada[0])
+    validar_numero_argumentos(elementos_entrada[1])
+    validar_coeficientes_funcion_objetivo(elementos_entrada[2], coeficientes_funcion_objetivo)
+    validar_restricciones(elementos_entrada[3:], restricciones)
+
+def validar_tipo_optimizacion(optimizacion):
+    if optimizacion not in {"min", "max"}:
+        print("ERROR: Tipo de optimizacion incorrecto")
+        print("Usted ingreso : " + str(optimizacion))
+        print("Esperaba : min o max")
+        exit(0)
+
+def validar_numero_argumentos(linea_2_archivo):
+    numero_variables_decision, numero_restricciones = map(int, linea_2_archivo.split(","))
+    return numero_variables_decision, numero_restricciones
+
+def validar_coeficientes_funcion_objetivo(linea_3_archivo, coeficientes_funcion_objetivo):
+    args = re.split(",", linea_3_archivo)
+    if len(args) != len(coeficientes_funcion_objetivo):
+        print("ERROR: El numero de coeficientes de la funcion objetivo es distinto al numero de variables de decision")
+        print("Usted ingreso : " + str(len(args)))
+        print("Se esperaban : " + str(len(coeficientes_funcion_objetivo)))
+        exit(0)
+    try:
+        coeficientes_funcion_objetivo.extend(map(float, args))
+    except ValueError:
+        print("ERROR: Alguno de los valores ingresados no es un entero")
+        exit(0)
+
+def validar_restricciones(lista_de_elementos, restricciones):
+    numero_restricciones = int(lista_de_elementos[0])
+    for restriccion in lista_de_elementos[1:]:
+        args = re.split(",", restriccion)
+        if len(args) != numero_restricciones + 1:
+            print("ERROR: Alguna restriccion se encuentra incomplete o el numero de variables de decision ingresada es incorrecto")
+            exit(0)
+        try:
+            restricciones.append([float(arg) for arg in args])
+        except ValueError:
+            print("ERROR: Alguno de los valores ingresados no es un entero")
+            exit(0)
+        if args[-1] not in {"=", "<=", ">="}:
+            print("ERROR: Alguna de las restricciones no cumple con ser =, <= o >=")
+            print("Usted ingreso : " + str(args[-1]))
+            print("Se esperaba: =, <=, o >=")
+            exit(0)
+
+if __name__ == "__main__":
+    # Parsear argumentos de la línea de comandos si es necesario
+    elementos_entrada = ["min", "2,3", "1,2", "1,2,3", "1,2,=", "2,1,>=", "1,1,<="]
+    main(elementos_entrada)
+
+
+
+------------------------------------------------------------------
+
+
+Vista
+
+from fractions import Fraction
+
+class Printer:
+    def __init__(self):
+        pass
+
+    def print_columns(self, column_array, file):
+        header = "\t" + "\t".join(column_array) + "\t"
+        file.write(header + "\n")
+        print(header)
+
+    def print_u_row(self, table, row_labels, file):
+        row_u = row_labels[0] + "\t"
+        for x in range(len(table[0])):
+            result = round(table[0][x].NUM, 2)
+            convert = Fraction(result).limit_denominator()
+            row_u += str(convert) + "\t"
+        file.write(row_u + "\n")
+        print(row_u)
+
+    def print_matrix(self, table, row_labels, column_labels, file):
+        if len(table) != 0:
+            self.print_columns(column_labels, file)
+            self.print_u_row(table, row_labels, file)
+            for i in range(1, len(table)):
+                row = row_labels[i] + "\t"
+                for j in range(len(table[i])):
+                    result = round(table[i][j], 2)
+                    convert = Fraction(result).limit_denominator()
+                    row += str(convert) + "\t"
+                file.write(row + "\n")
+                print(row)
+
+class Solution:
+    def __init__(self):
+        self.variable_list = []
+        self.value_list = []
+
+    def show_solution(self, table, row_labels, column_labels, file, is_minimization):
+        self.variable_list.append("U")
+        self.value_list.append(str(round(table[0][len(table[0]) - 2].NUM, 2)))
+        for i in range(1, len(row_labels)):
+            self.value_list.append(table[i][len(table[i]) - 2])
+            self.variable_list.append(row_labels[i])
+
+        self.place_variables(column_labels)
+        self.print_variables(file)
+
+    def place_variables(self, column_labels):
+        for i in range(0, len(column_labels) - 2):
+            if column_labels[i] in self.variable_list:
+                continue
+            else:
+                self.variable_list.append(column_labels[i])
+                self.value_list.append(0)
+
+    def print_variables(self, file):
+        result_str = "OPTIMAL VALUE: [Z] = " + str(self.value_list[0]) + "\t Resulting variable values: (" + \
+                     str(self.variable_list[1]) + ": " + str(round(self.value_list[1], 2))
+        for i in range(2, len(self.variable_list)):
+            result_str += "," + str(self.variable_list[i]) + ": " + str(round(self.value_list[i], 2))
+        print(result_str + " )")
+        file.write(result_str + " )\n")
+
+class MultipleSolutions:
+    def __init__(self):
+        self.position_list = []
+
+    def locate_basic_variables(self, table, row_labels, column_labels):
+        for i in range(1, len(row_labels)):
+            if row_labels[i] in column_labels:
+                self.position_list.append(column_labels.index(row_labels[i]))
+
+        return self.check_multiple_solutions(table)
+
+    def check_multiple_solutions(self, table):
+        for i in range(len(table[0]) - 2):
+            if i not in self.position_list:
+                if table[0][i].NUM == 0:
+                    return i
+        return -1
+
+class OutputFile:
+    def __init__(self, name):
+        self.file = open(name, "w+")
+        print(name)
+
+    def get_file(self):
+        return self.file
+
+
+
+
+
+-------------------------------------------------------------------
+
+simplex
+
+
+tabla=[[]]
+arregloFilas=[]
+arregloColumnas=[]
+from Vista import *
+
+class MetodoSimplex:
+    def __init__(self, tablaAux, arregloFilasAux, arregloColumnasAux, esMin, fichero):
+
+        """
+        Inicializa una instancia de la clase MétodoSimplex.
+
+        Parámetros:
+        - tablaAux: La tabla donde se almacena la forma estándar.
+        - arregloFilasAux: El nombre de las filas o variables básicas.
+        - arregloColumnasAux: El nombre de las columnas.
+        - esMin: Un booleano que indica si es una minimización o maximización.
+        - fichero: El archivo donde se escribe.
+
+        """
+        global tabla, arregloFilas, arregloColumnas
+        tabla = tablaAux
+        arregloFilas = arregloFilasAux
+        arregloColumnas = arregloColumnasAux
+        self.esMin = esMin
+        self.flagDg = False
+        self.archivo = fichero
+      
+    def encontrarColPivoteMax(self):
+        global tabla
+        indica=(tabla[0][0].NUM)
+        col=0
+        for x in range(len(tabla[0])-2):
+            if indica<(tabla[0][x].NUM) :
+                indica = (tabla[0][x].NUM)
+                col=x
+        return col
+    
+    def encontrarColPivotMin(self):
+        global tabla
+        indica=tabla[0][0].NUM
+        col=0
+        
+        for x in range(len(tabla[0])-2):
+            if indica>tabla[0][x].NUM:
+                indica = tabla[0][x].NUM
+                col=x
+        return col
+
+    
+    def realizarDivision(self,columna):
+        global tabla
+        for x in range(1,len(tabla)):
+            if tabla[x][columna]!=0:
+                i=round(tabla[x][len(tabla[x])-2]/tabla[x][columna], 2)
+                tabla[x][len(tabla[x])-1]=i
+            else : tabla[x][len(tabla[x])-1]=0
+
+    def encontrarFilaPivote(self):
+        global tabla 
+        indica=1000
+        fila=-1
+        for x in range(1,len(tabla)):
+            if(tabla[x][len(tabla[x])-1]>0 and tabla[x][len(tabla[x])-1] < indica):
+                indica =tabla[x][len(tabla[x])-1]
+                fila=x
+        return fila
+
+            
+    def elegirCol(self):
+        if(self.esMin is True):return self.encontrarColPivoteMax()
+        else: return self.encontrarColPivoteMax()
+
+
+    def degeneradaSolucion(self,fila):
+        cont=0
+
+        for i in range(1,len(tabla)):
+            if tabla[i][len(tabla[i])-1] == tabla[fila][len(tabla[i])-1]:
+                cont+=1
+                fila=i
+        lista=[cont,fila]
+        return lista
+
+    def verificarDegenerada(self,degenerada):
+        if self.flagDg is True:
+            print("\n\n DEGENERACIÓN:"+str(degenerada)+"\n")
+            self.archivo.write("\n\n DEGENERACIÓN:"+str(degenerada)+"\n")
+
+    def optimoMax(self):
+        global tabla
+        for x in range(0,len(tabla[0])-2):
+            valor = tabla[0][x].NUM 
+            #print(valor)
+            if(valor>0): return False
+        return True
+    
+    def optimoMin(self):
+        global tabla
+        for x in range(len(tabla[0])-2):
+            valor = tabla[0][x].NUM
+            if(valor<0):return False
+        return True
+    
+    def solucionAdicional(self, col):
+        """
+        Realiza una solución extra en el método simplex.
+
+        Parámetros:
+        - col: La columna pivot para realizar la solución extra.
+
+        """
+        global tabla, arregloFilas, arregloColumnas
+        impresion = Imprime(self.archivo)
+        columnaPivot = col
+        self.realizarDivision(columnaPivot)
+        filaPivot = self.encontrarFilaPivote()
+        print("Pivote para trabajar: " + str(round(tabla[filaPivot][columnaPivot], 2)) + "\nEntra: " + arregloColumnas[columnaPivot] + "\nSale: " + arregloFilas[filaPivot])
+        self.archivo.write("Pivote para trabajar: " + str(round(tabla[filaPivot][columnaPivot], 2)) + "\nEntra: " + arregloColumnas[columnaPivot] + "\nSale: " + arregloFilas[filaPivot] + "\n")
+        self.convertir_Fila_Pivote(filaPivot, columnaPivot)
+        self.modificar_Filas(filaPivot, columnaPivot)
+        self.modificar_FilaZ(filaPivot, columnaPivot)
+        auxFila = arregloFilas[filaPivot]
+        arregloFilas[filaPivot] = arregloColumnas[columnaPivot]
+        impresion.imprime_Matriz()
+       
+
+    def start_MetodoSimplex_Max(self):
+
+        """
+        Este método implementa el algoritmo simplex para resolver problemas de programación lineal con una función objetivo de maximización.
+        Realiza iterativamente operaciones de pivote para encontrar la solución óptima.
+
+        Retorna:
+        - La tabla final después de que el algoritmo termina.
+        """
+
+        impresion=Imprime(self.archivo)
+        estados=0
+        global tabla,arregloFilas,arregloColumnas
+        print_Aux= Print()
+        multiplesSol=Multiples_Solucion()
+        s=Solucion()
+        degenerada=0
+        s_Extra=Solucion()
+        cont=0
+        print_Aux.imprime_Matriz(tabla,arregloFilas,arregloColumnas,self.archivo) 
+        while True:
+            if self.optimoMax() is True and self.esMin is False or self.optimoMax() is True and self.esMin is True :
+                self.verificarDegenerada(degenerada)
+
+                s.mostrarSolucion(tabla,arregloFilas,arregloColumnas,self.archivo, self.esMin)
+
+                if multiplesSol.localizar_VB(tabla,arregloFilas,arregloColumnas)!= -1: 
+                    #existen multiples soluciones
+                    self.solucionAdicional(multiplesSol.localizar_VB(tabla,arregloFilas,arregloColumnas))
+                    
+                    s_Extra.mostrarSolucion(tabla,arregloFilas,arregloColumnas,self.archivo, self.esMin) 
+                
+                return tabla
+            
+            columnaPivot= self.elegirCol()
+            self.realizarDivision(columnaPivot) 
+            filaPivot=self.encontrarFilaPivote()
+
+            if(filaPivot == -1):
+                print("\n ITERACIÓN "+ str(estados))
+                self.archivo.write("\n ITERACIÓN "+ str(estados)+"\n")
+                print("#####  Se detiene el proceso debido a que cada uno de los valores de la columna pivote es menor o igual a cero ###### \n")
+                self.archivo.write("#####  Se detiene el proceso debido a que cada uno de los valores de la columna pivote es menor o igual a cero ###### \n")
+                s.mostrarSolucion(tabla,arregloFilas,arregloColumnas,self.archivo,self.esMin)
+                return tabla#break
+            
+            if self.degeneradaSolucion(filaPivot)[0] >= 2: # verifica si se cumple con una funcin degenerada
+                self.flagDg=True
+                filaPivot=self.degeneradaSolucion(filaPivot)[1]
+               
+                degenerada=estados+1
+
+            self.archivo.write("\n ITERACIÓN "+ str(estados)+"\n") # se escribe en el archivo de salida
+
+            print("\n Info interación: "+ str(estados))
+            estados+=1
+            self.archivo.write("Pivote para trabajar: "+ str(round(tabla[filaPivot][columnaPivot],2))+ "\nEntra: "+ arregloColumnas[columnaPivot]+ "\nSale: "+ arregloFilas[filaPivot]+"\n")
+            conv= str(round(tabla[filaPivot][columnaPivot],2))
+            print("Pivote para trabajar: "+ str(Fraction(conv))+ "\nEntra: "+ arregloColumnas[columnaPivot]+ "\nSale: "+ arregloFilas[filaPivot])
+            arregloFilas[filaPivot]=arregloColumnas[columnaPivot]
+            
+            self.convertir_Fila_Pivote(filaPivot,columnaPivot) # Metodo gauss jordan
+            self.modificar_Filas(filaPivot,columnaPivot)
+            self.modificar_FilaZ(filaPivot,columnaPivot)
+            impresion.imprime_Matriz()  
+
+
+    def modificar_Filas(self, filaPivot, columnaPivot):
+        """
+        Modifica las filas de la tabla utilizando el método simplex.
+
+        Parámetros:
+        - filaPivot: El índice de la fila pivot.
+        - columnaPivot: El índice de la columna pivot.
+
+        """
+    def modificar_Filas(self,filaPivot,columnaPivot):
+        global tabla
+        for i in range(1,len(tabla)):
+            if i != filaPivot:
+                arg1=tabla[i][columnaPivot]
+                for j in range(0,len(tabla[i])-1):
+                    x=tabla[i][j]-arg1*tabla[filaPivot][j]
+                    tabla[i][j]=x
+
+
+    def modificar_FilaZ(self, filaPivot, columnaPivot):
+        """
+        Modifica la fila Z de la tabla del método simplex.
+
+        Parámetros:
+        - filaPivot: El índice de la fila pivot.
+        - columnaPivot: El índice de la columna pivot.
+
+        """
+        global tabla
+        lista = []
+        lista2 = []
+        for i in range(len(tabla[0])-2):
+            arg2 = tabla[0][columnaPivot].NUM
+            y = tabla[0][i].NUM - arg2 * tabla[filaPivot][i]
+            lista2.append(y)
+
+        arg2 = tabla[0][columnaPivot].NUM
+
+        if self.esMin is True:
+            y = tabla[0][len(tabla[0])-2].NUM - arg2 * tabla[filaPivot][len(tabla[0])-2]
+        else:
+            y = tabla[0][len(tabla[0])-2].NUM + arg2 * tabla[filaPivot][len(tabla[0])-2]
+        lista2.append(y)
+        x = 0
+        while x < len(lista2):
+            tabla[0][x].NUM = lista2[x]
+            x += 1
+            
+
+    def convertir_Fila_Pivote(self, filaPivot, columnaPivot):
+        """
+        Convierte la fila pivote en la tabla del método simplex.
+
+        Parámetros:
+        - filaPivot: El índice de la fila pivot.
+        - columnaPivot: El índice de la columna pivot.
+
+        Retorna:
+        None
+        """
+        if tabla[filaPivot][columnaPivot] != 0:
+            denominador = 1 / tabla[filaPivot][columnaPivot]
+        else:
+            denominador = 1
+        y = 0
+        while y < len(tabla[filaPivot]) - 1:
+            numerador = tabla[filaPivot][y]
+            x = numerador * denominador
+            tabla[filaPivot][y] = x
+            y += 1
+
+    '''
+    Impresion de la parte grafica
+    '''
+
+class Imprime:
+    #Constructor
+    def __init__(self,fichero):
+        self.archivo=fichero
+
+    def imprime_Columnas(self):
+        global arregloColumnas
+        aux="\n\n\n\t"
+        aux2="\t"
+        for i in arregloColumnas:
+            aux+=i+"\t"
+            aux2+=""
+        aux2+=""
+        print (aux+"\n"+aux2)
+        self.archivo.write("\n"+aux+"\n"+aux2+"\n")
+
+
+    def imprimeFilaU(self):
+        global arregloFilas
+        aux=arregloFilas[0]+"\t"
+        for x in range (len(tabla[0])):
+            var2=round(tabla[0][x].NUM,2)
+            convert=Fraction(var2).limit_denominator()
+            aux+=str(convert)+"\t"
+        print (aux)
+        self.archivo.write(aux+"\n")
+
+    def imprime_Matriz(self):
+       global tabla,arregloFilas
+       if(len(tabla) is not 0):
+          aux=""
+          self.imprime_Columnas()
+          self.imprimeFilaU()
+          for i in range (1,len(tabla)):
+              aux=arregloFilas[i]+"\t"
+              for j in range (len(tabla[i])):
+                  var=round(tabla[i][j],2)
+                  convert=Fraction(var).limit_denominator()
+                  aux+=str(convert)+"\t"
+              self.archivo.write(aux+"\n")
+              print(aux)
+
+
+
+----------------------------------------------------------------
+
+import copy
+from Simplex import*
+
+# Arreglos originales
+tabla_orig = [[]]
+varSeleccion_orig = 0
+arregloColumnas_orig = []
+arregloFilas_orig = ["Xb\Z"]
+arregloZ_orig = []
+arreglo_Z2_orig = []
+
+class AuxiliarZ:
+    def __init__(self, numero, letra):
+        self.numero = numero
+        self.letra = letra
+
+class FuncionObjetivo:
+
+    def __init__(self, restricciones, es_minimizar, u):
+        self.es_minimizar = es_minimizar
+        self.restricciones = restricciones
+        self.u = u
+
+    def crear_funcion_objetivo(self):
+        global tabla_orig
+        self.conversion_nulos()
+        for i in range(len(self.u)):
+            global arregloZ_orig
+            if self.es_minimizar:
+                funcion_aux = AuxiliarZ(self.u[i] * -1, "X" + str(i + 1))
+            else:
+                funcion_aux = AuxiliarZ(self.u[i], "X" + str(i + 1))
+            arregloZ_orig.append(funcion_aux)
+        solucion = AuxiliarZ(0, "CX")
+        arregloZ_orig.append(solucion)
+
+    def buscar_en_arreglo(self, identificador):
+        global arregloZ_orig
+        for x in range(len(arregloZ_orig)):
+            if arregloZ_orig[x].letra == identificador:
+                return x
+        return -1
+
+    def verificar_min_X(self, numero):
+        return numero * -1 if self.es_minimizar else numero
+
+    def agregar_restricciones(self):
+        global arregloZ_orig
+        for i in range(len(self.restricciones)):
+            if self.restricciones[i][len(self.restricciones[i]) - 1] != "<=":
+                for j in range(len(self.restricciones[i]) - 2):
+                    if self.buscar_en_arreglo("X" + str(j + 1)) != -1:
+                        numero = self.verificar_min_X(self.restricciones[i][j])
+                numero = self.verificar_min_X(self.restricciones[i][len(self.restricciones[i]) - 2])
+                x = self.buscar_en_arreglo("CX")
+        self.cambiar_signos()
+
+    def cambiar_signos(self):
+        global arregloZ_orig, tabla_orig
+        arregloZ_orig[len(arregloZ_orig) - 1].numero = arregloZ_orig[len(arregloZ_orig) - 1].numero * -1
+        for x in range(len(arregloZ_orig)):
+            tabla_orig[0][self.ubicar(arregloZ_orig[x])] = arregloZ_orig[x]
+
+    def ubicar(self, elemento):
+        global arregloColumnas_orig
+        for x in range(len(arregloColumnas_orig)):
+            if elemento.letra == arregloColumnas_orig[x]:
+                return x
+        return -1
+
+    def conversion_nulos(self):
+        for x in range(len(arregloColumnas_orig)):
+            funcion_aux = AuxiliarZ(0, arregloColumnas_orig[x])
+            tabla_orig[0][x] = funcion_aux
+
+class MatrizRestricciones:
+    def __init__(self, restricciones):
+        self.matriz = restricciones
+
+    def set_matriz(self, valor):
+        print("Matriz cambiada")
+        self.matriz = valor
+
+    def get_matriz(self):
+        return self.matriz
+
+    def cantidad_filas(self):
+        if len(self.matriz) != 0:
+            global varSeleccion_orig, tabla_orig
+            filas = varSeleccion_orig + 2
+            for i in range(len(self.matriz)):
+                indica = self.matriz[i][len(self.matriz[i]) - 1]
+                filas += self.cantidad_filas_aux(indica)
+            tabla_orig = [[0 for i in range(filas)] for i in range(len(self.matriz) + 1)]
+
+    def cantidad_filas_aux(self, argument):
+        switcher = {">=": 2}
+        return switcher.get(argument, 1)
+
+    def variables_decision(self):
+        global varSeleccion_orig
+        for i in range(0, varSeleccion_orig):
+            arregloColumnas_orig.append("X" + str(i + 1))
+
+class RestriccionesProblema:
+    def __init__(self, restricciones, es_minimizar):
+        self.matriz = restricciones
+        self.varR = 1
+        self.varS = 1
+        self.es_minimizar = es_minimizar
+
+    def colocar_restricciones(self):
+        global varSeleccion_orig
+        posicion = varSeleccion_orig - 1
+
+        for i in range(len(self.matriz)):
+            for j in range(len(self.matriz[i]) - 2):
+                tabla_orig[i + 1][j] = self.matriz[i][j]
+            m = MatrizRestricciones(self.matriz)
+            self.verificar_signo(self.matriz[i][len(self.matriz[i]) - 1])
+            x = m.cantidad_filas_aux(self.matriz[i][len(self.matriz[i]) - 1])
+            posicion += x
+            tabla_orig[i + 1][len(tabla_orig[i]) - 2] = self.matriz[i][len(self.matriz[i]) - 2]
+            if x == 2:
+                tabla_orig[i + 1][posicion - 1] = 1
+                tabla_orig[i + 1][posicion] = -1
+            else:
+                tabla_orig[i + 1][posicion] = 1
+
+        arregloColumnas_orig.append("Bi")
+        arregloColumnas_orig.append("Cx")
+
+    def mayor_igual(self):
+        arregloColumnas_orig.append("R" + str(self.varR))
+        arregloColumnas_orig.append("H" + str(self.varS))
+        arregloFilas_orig.append("R" + str(self.varR))
+        z = AuxiliarZ(0, "S" + str(self.varS))
+        global arregloZ_orig
+        arregloZ_orig.append(z)
+        self.varR += 1
+        self.varS += 1
+
+    def verificar_min(self, argument):
+        switcher = {True: 1}
+        return switcher.get(argument, -1)
+
+    def menor_igual(self):
+        arregloColumnas_orig.append("H" + str(self.varS))
+        arregloFilas_orig.append("H" + str(self.varS))
+        self.varS += 1
+
+    def igual(self):
+        arregloColumnas_orig.append("R" + str(self.varR))
+        arregloFilas_orig.append("R" + str(self.varR))
+        self.varR += 1
+
+    def verificar_signo(self, signo):
+        switcher = {">=": self.mayor_igual, "<=": self.menor_igual, "=": self.igual}
+        switcher[signo]()
+
+class ControladorMetodoSimplex:
+    def __init__(self, es_minimizar, U, restricciones, vars, file, es_dual):
+
+        global varSeleccion_orig
+        self.es_dual = es_dual
+        self.archivo = file
+        varSeleccion_orig = vars
+        self.es_minimizar = es_minimizar
+        self.funcion_objetivo = U
+        self.restricciones = restricciones
+
+    def iniciar_controlador(self):
+        global tabla_orig, arregloFilas_orig, arregloColumnas_orig, arregloZ_orig
+
+        dos_fases = False
+        for i in range(len(self.restricciones)):
+            if self.restricciones[i][-1] != "<=":
+                dos_fases = True
+                break
+
+        matriz_restricciones = MatrizRestricciones(self.restricciones)
+        matriz_restricciones.cantidad_filas()
+        matriz_restricciones.variables_decision()
+
+        restricciones_problema = RestriccionesProblema(self.restricciones, self.es_minimizar)
+        restricciones_problema.colocar_restricciones()
+
+        funcion_objetivo = FuncionObjetivo(self.restricciones, self.es_minimizar, self.funcion_objetivo)
+        funcion_objetivo.crear_funcion_objetivo()
+        funcion_objetivo.agregar_restricciones()
+
+        if self.es_dual:
+            pass
+        else:
+            if not dos_fases:
+                metodo_simplex = MetodoSimplex(tabla_orig, arregloFilas_orig, arregloColumnas_orig,
+                                              self.es_minimizar, self.archivo)
+                metodo_simplex.start_MetodoSimplex_Max()
+            else:
+                print("\n ==================================== PRIMERA FASE ===================================\n")
+                nuevo_N = self.generar_nuevo_N()
+                nueva_tabla = self.generar_tabla_fase1(nuevo_N)
+
+                metodo_simplex = MetodoSimplex(nueva_tabla, arregloFilas_orig, arregloColumnas_orig,
+                                              self.es_minimizar, self.archivo)
+                matriz_fase1 = metodo_simplex.start_MetodoSimplex_Max()
+
+                print("\n===================================== SEGUNDA FASE ======================================\n")
+                self.generar_tabla_fase2(matriz_fase1)
+                nueva_tabla = self.eliminar_variables_artificiales()
+                nuevo_arreglo_col = self.actualizar_arreglo_columnas()
+                tabla_ceros = self.hacer_ceros(nueva_tabla, arregloFilas_orig, nuevo_arreglo_col)
+                metodo_simplex = MetodoSimplex(nueva_tabla, arregloFilas_orig, nuevo_arreglo_col,
+                                              self.es_minimizar, self.archivo)
+                matriz_fase1 = metodo_simplex.start_MetodoSimplex_Max()
+
+    def imprimir_resultado_dual(self, matriz_dual):
+        arreglo_dual = []
+        for i in range(len(matriz_dual[0])):
+            if matriz_dual[0][i].letra != "CX":
+                if "S" in matriz_dual[0][i].letra:
+                    arreglo_dual.append((round(matriz_dual[0][i].numero * -1, 2)))
+        return arreglo_dual
+
+    def hacer_ceros(self, nueva_tabla, arreglo_filas, nuevo_arreglo_col):
+        for i in range(len(nuevo_arreglo_col)):
+            for j in range(len(arreglo_filas)):
+                if arreglo_filas[j] == nuevo_arreglo_col[i]:
+                    nueva_tabla = self.modificar_fila_Z(j, i, nueva_tabla)
+
+        return nueva_tabla
+
+    def modificar_fila_Z(self, fila_pivot, columna_pivot, nueva_tabla):
+        lista = []
+        lista2 = []
+        for i in range(len(nueva_tabla[0]) - 2):
+            arg2 = nueva_tabla[0][columna_pivot].numero
+            y = nueva_tabla[0][i].numero - arg2 * nueva_tabla[fila_pivot][i]
+            lista2.append(y)
+        arg2 = nueva_tabla[0][columna_pivot].numero
+        if self.es_minimizar:
+            y = nueva_tabla[0][len(nueva_tabla[0]) - 2].numero - arg2 * nueva_tabla[fila_pivot][len(nueva_tabla[0]) - 2]
+        else:
+            y = nueva_tabla[0][len(nueva_tabla[0]) - 2].numero + arg2 * nueva_tabla[fila_pivot][len(nueva_tabla[0]) - 2]
+        lista2.append(y)
+        x = 0
+        while x < len(lista2):
+            nueva_tabla[0][x].numero = lista2[x]
+            x += 1
+        return nueva_tabla
+
+    def generar_tabla_fase1(self, nuevo_N):
+        global tabla_orig
+        tabla_aux = copy.deepcopy(tabla_orig)
+        nuevo_Z = []
+        x = 0
+        for i in range(len(tabla_aux[0])):
+            x = nuevo_N[i] + x
+            for j in range(len(tabla_aux)):
+                if j != 0:
+                    x = tabla_aux[j][i] + x
+            nuevo_Z.append(x)
+            x = 0
+        for i in range(len(tabla_aux[0])):
+            tabla_aux[0][i].numero = nuevo_Z[i]
+
+        return tabla_aux
+
+    def generar_nuevo_N(self):
+        arreglo = []
+        for i in range(len(tabla_orig[0])):
+            if 'R' in tabla_orig[0][i].letra:
+                arreglo.append(-1)
+            else:
+                arreglo.append(0)
+        return arreglo
+
+    def generar_tabla_fase2(self, matriz_fase1):
+        global tabla_orig
+        for i in range(len(tabla_orig)):
+            if i > 0:
+                tabla_orig[i] = matriz_fase1[i]
+
+    def eliminar_variables_artificiales(self):
+        global tabla_orig
+
+        tabla_fase2 = []
+        arreglo_fase2 = []
+
+        for i in range(len(tabla_orig)):
+            for j in range(len(tabla_orig[0])):
+                if 'R' not in tabla_orig[0][j].letra:
+                    arreglo_fase2.append(tabla_orig[i][j])
+
+            tabla_fase2.append(arreglo_fase2)
+            arreglo_fase2 = []
+
+        return tabla_fase2
+
+    def actualizar_arreglo_columnas(self):
+        global arregloColumnas_orig
+        nuevo_arreglo_col = []
+        for i in range(len(arregloColumnas_orig)):
+            if 'R' not in arregloColumnas_orig[i]:
+                nuevo_arreglo_col.append(arregloColumnas_orig[i])
+        return nuevo_arreglo_col
+
+    
